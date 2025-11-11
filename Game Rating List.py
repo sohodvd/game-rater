@@ -1,24 +1,66 @@
+import json
+
 games = []
+
+def load_games():
+    global games
+    try:
+        with open("games.json", "r") as f:
+            games = json.load(f)  
+        print("Game list loaded successfully.")
+    except FileNotFoundError:
+        print("No saved game list found. Starting fresh.")
+    except json.JSONDecodeError:
+        print("Error reading saved game list. Starting fresh.")
+
+def save_games():
+    with open("games.json", "w") as f:
+        json.dump(games, f) 
+    print("Game list saved successfully.")
+
 
 def add_game(game):
     games.append(game)
+    save_games()
     print(f"Game added: {game[0]} with rating {game[1]}/10")
 
-def view_game():
+def view_game(ask_edit=True):
     if not games:
         print("No games added yet.")
-    else:
-        print("\nYour game list:")
-        for index, (Game, Rating) in enumerate(games, start=1):
-            print(f"{index}. {Game} - Rating: {Rating}/10")
+        return  
+
+    print("\nYour game list:")
+    for index, (Game, Rating) in enumerate(games, start=1):
+        print(f"{index}. {Game} - Rating: {Rating}/10")
+
+    if ask_edit:
+        user_input = input("\nWould you like to edit a rating? (yes/no): ").lower()
+        if user_input == "yes":
+            try:
+                choice = int(input("Enter the number of the game to edit: "))
+                if 1 <= choice <= len(games):
+                    new_rating = input(f"Enter new rating for {games[choice - 1][0]}: ")
+                    games[choice - 1] = (games[choice - 1][0], new_rating)
+                    save_games()
+                    print(f"Updated {games[choice - 1][0]} to rating {new_rating}/10")
+                else:
+                    print("Invalid choice. Returning to main menu.")
+            except ValueError:
+                print("Invalid input. Please enter a number.")
+            except Exception as e:
+                print(f"An unexpected error occurred: {e}")
+        elif user_input == "no":
+            return
+
 
 def delete_game():
-    view_game()
+    view_game(ask_edit=False)
     if games:
         try:
             choice = int(input("Enter the number of the game to delete: "))
             if 1 <= choice <= len(games):
                 removed = games.pop(choice - 1)
+                save_games()
                 print(f"Deleted game: {removed[0]}")
             else:
                 print("Invalid choice.")
@@ -26,6 +68,7 @@ def delete_game():
             print("Invalid input. Please enter a number.")
 
 def main_menu():
+    load_games()
     while True:
         print("\nGame List Menu:")
         print("1. Add Game")
@@ -74,7 +117,7 @@ def Feed_menu():
 
 def Profile_menu():
     ask_name = input("Enter the name of your profile:")
-    print(f"Created Profile {ask_name}")
+    print(f"Created Profile: {ask_name}")
 
     while True:
         print("\nProfile Menu:")
@@ -94,6 +137,13 @@ def Profile_menu():
             break
         else:
             print("Invalid option. Please try again.")
+
+
+
+
+def view_profile():
+    print("{\n ask_name}")
+    
 
 
     
