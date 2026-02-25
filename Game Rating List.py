@@ -1,8 +1,57 @@
 import json
 
+profile = None
+
+
 games = []
 
-def load_games():
+
+
+def get_non_empty_input(prompt):           #function to make sure input is not blank
+    while True:
+        user_input = input(prompt).strip()
+
+        if user_input.lower()=="q":
+            return None
+        
+        if user_input:
+            return user_input
+        print("Input cannot be empty. Try again.")
+
+
+
+
+
+def get_valid_rating(prompt):      #function to make sure highest rating is 10
+    while True:
+        rating = input(prompt).strip()
+
+        if rating.lower()== "q":
+            return None
+        
+        if rating.isdigit() and 1 <= int(rating) <= 10:
+                return rating
+            
+        print("Please enter a number between 1 and 10.")
+
+
+
+
+
+def load_profile():   #load profiles
+    global profile
+    try:
+        with open("profile.json", "r") as f:
+            data = json.load(f)
+            profile = data["name"]
+    except FileNotFoundError:
+        profile = None
+
+def save_profile():   #save profiles
+    with open("profile.json", "w") as f:
+        json.dump({"name": profile}, f)
+
+def load_games():   #load games
     global games
     try:
         with open("games.json", "r") as f:
@@ -13,62 +62,90 @@ def load_games():
     except json.JSONDecodeError:
         print("Error reading saved game list. Starting fresh.")
 
-def save_games():
+def save_games():   #save games
     with open("games.json", "w") as f:
         json.dump(games, f) 
     print("Game list saved successfully.")
 
 
-def add_game(game):
+def add_game(game):   #add games
     games.append(game)
     save_games()
     print(f"Game added: {game[0]} with rating {game[1]}/10")
+    
 
-def view_game(ask_edit=True):
+def view_game(ask_edit=True):    #view all games
     if not games:
         print("No games added yet.")
-        return  
+        return 
 
     print("\nYour game list:")
     for index, (Game, Rating) in enumerate(games, start=1):
         print(f"{index}. {Game} - Rating: {Rating}/10")
 
     if ask_edit:
-        user_input = input("\nWould you like to edit a rating? (yes/no): ").lower()
-        if user_input == "yes":
-            try:
-                choice = int(input("Enter the number of the game to edit: "))
-                if 1 <= choice <= len(games):
-                    new_rating = input(f"Enter new rating for {games[choice - 1][0]}: ")
+        user_input = input("\nWould you like to edit a rating? (yes/no, q to cancel): ").strip().lower()
+
+    if user_input == "q":
+        print("Edit cancelled. Returning to main menu.")
+        return
+
+    if user_input == "yes":
+        choice_input = input("Enter the number of the game to edit (press q to cancel): ").strip()
+
+        if choice_input.lower() == "q":
+            print("Edit cancelled. Returning to main menu.")
+            return
+
+        if choice_input.isdigit():
+            choice = int(choice_input)
+
+            if 1 <= choice <= len(games):
+                new_rating = input(f"Enter new rating for {games[choice - 1][0]} (press q to cancel): ").strip()
+
+                if new_rating.lower() == "q":
+                    print("Edit cancelled. Returning to main menu.")
+                    return
+
+                if new_rating.isdigit() and 1 <= int(new_rating) <= 10:
                     games[choice - 1] = (games[choice - 1][0], new_rating)
                     save_games()
                     print(f"Updated {games[choice - 1][0]} to rating {new_rating}/10")
                 else:
-                    print("Invalid choice. Returning to main menu.")
-            except ValueError:
-                print("Invalid input. Please enter a number.")
-            except Exception as e:
-                print(f"An unexpected error occurred: {e}")
-        elif user_input == "no":
-            return
+                    print("Please enter a number between 1 and 10.")
+            else:
+                print("Invalid choice.")
+        else:
+            print("Invalid input. Please enter a number.")
+
+    elif user_input == "no":
+        return
 
 
 def delete_game():
     view_game(ask_edit=False)
     if games:
-        try:
-            choice = int(input("Enter the number of the game to delete: "))
+        user_input = input("Enter the number of the game to delete (press q to cancel): ").strip()
+
+        if user_input.lower() == "q":
+            print("Delete cancelled. Returning to main menu.")
+            return
+
+        if user_input.isdigit():
+            choice = int(user_input)
+
             if 1 <= choice <= len(games):
                 removed = games.pop(choice - 1)
                 save_games()
                 print(f"Deleted game: {removed[0]}")
             else:
                 print("Invalid choice.")
-        except ValueError:
+        else:
             print("Invalid input. Please enter a number.")
 
-def main_menu():
+def main_menu():   #main menu function
     load_games()
+    load_profile()
     while True:
         print("\nGame List Menu:")
         print("1. Add Game")
@@ -81,9 +158,19 @@ def main_menu():
         choice = input("Pick an option (1-7): ")
 
         if choice == "1":
-            Game = input("What is the name of the game you would like to add? ")
-            Rating = input(f"What would you rate {Game} out of 10 stars? ")
+            Game = get_non_empty_input("What is the name of the game you would like to add? (q to cancel) ")
+
+            if Game is None:
+                print("Add game cancelled. Returning to main menu.")
+                continue
+            Rating = get_valid_rating(f"What would you rate {Game} out of 10 stars? (q to cancel) ")
+
+            if Rating is None:
+                print("Add game cancelled. Returning to main menu")
+                continue
+
             add_game((Game, Rating))
+
         elif choice == "2":
             view_game()
         elif choice == "3":
@@ -95,13 +182,13 @@ def main_menu():
         elif choice == "6":
             Profile_menu()
         elif choice == "7":
-            print("Exiting the game menu.")
+            print("Goodbye! 👋")
             break
         else:
             print("Invalid option. Please try again.")
 
 
-def search_game():
+def search_game():   #search for games
     search_name = input("Enter game name to search:")
     search_found = [game for game in games if search_name.lower() in game[0].lower()]
     if search_found:
@@ -112,42 +199,46 @@ def search_game():
         print(f"{search_name} not found.")
 
 
-def Feed_menu():
+def Feed_menu():   #feed menu not working yet!!!
     print("Feeds coming soon...")
 
-def Profile_menu():
-    ask_name = input("Enter the name of your profile:")
-    print(f"Created Profile: {ask_name}")
+def Profile_menu():  #function for creating and viewing profile info
+    global profile
+
+    if profile is None:
+        print("No profile found.")
+        profile = input("Create your profile name: ")
+        save_profile()
+        print(f"Profile '{profile}' created.")
+        return
 
     while True:
+        print(f"\nHello 👋 {profile} ! ")
         print("\nProfile Menu:")
         print("1. View Profile")
-        print("2. Edit Profile")
+        print("2. Edit Profile Name")
         print("3. Back to Main Menu")
         choice = input("Pick an option (1-3): ")
 
         if choice == "1":
-            print(f"Profile Name: {ask_name}")
-            while True:
-                Edit_ask_name = input("")
+            print(f"Profile Name: {profile}")
+            view_game(ask_edit=False)
         elif choice == "2":
-            ask_name = input("Enter new profile name:")
-            print(f"Profile name updated to: {ask_name}")
+            profile = input("Enter new profile name: ")
+            save_profile()
+            print("Profile updated.")
         elif choice == "3":
             break
         else:
-            print("Invalid option. Please try again.")
+            print("Invalid option.")
 
 
 
-
-def view_profile():
-    print("{\n ask_name}")
     
 
 
     
-main_menu()
+main_menu()        
 
 
 
