@@ -1,4 +1,16 @@
-import json
+import json  
+
+
+class Game:
+    def __init__(self, name, rating):
+        self.name = name
+        self.rating = float(rating)
+        
+    def display(self):
+        print(f"{self.name} - Rating: {self.rating}/10")
+        
+        
+        
 
 profile = None
 
@@ -29,10 +41,14 @@ def get_valid_rating(prompt):      #function to make sure highest rating is 10
         if rating.lower()== "q":
             return None
         
-        if rating.isdigit() and 1 <= int(rating) <= 10:
-                return rating
-            
-        print("Please enter a number between 1 and 10.")
+        try:
+            rating_value = float(rating)
+            if 1 <= rating_value <= 10:
+                return rating_value
+            else:
+                print("Please enter a number between 1 and 10.")
+        except ValueError:
+            print("Please enter a number between 1 and 10.")
 
 
 
@@ -51,75 +67,80 @@ def save_profile():   #save profiles
     with open("profile.json", "w") as f:
         json.dump({"name": profile}, f)
 
+
 def load_games():   #load games
     global games
     try:
         with open("games.json", "r") as f:
-            games = json.load(f)  
+            data = json.load(f)
+            games = [Game(g["name"], g["rating"]) for g in data]
         print("Game list loaded successfully.")
     except FileNotFoundError:
         print("No saved game list found. Starting fresh.")
     except json.JSONDecodeError:
         print("Error reading saved game list. Starting fresh.")
 
-def save_games():   #save games
+
+def save_games():  #save games
     with open("games.json", "w") as f:
-        json.dump(games, f) 
+        json.dump([{"name": g.name, "rating": g.rating} for g in games], f)
     print("Game list saved successfully.")
-
-
-def add_game(game):   #add games
-    games.append(game)
-    save_games()
-    print(f"Game added: {game[0]} with rating {game[1]}/10")
     
 
-def view_game(ask_edit=True):    #view all games
+def add_game(game):  #add games
+    games.append(game)
+    save_games()
+    print(f"Game added: {game.name} with rating {game.rating}/10")
+    
+
+def view_game(ask_edit=True):
     if not games:
         print("No games added yet.")
-        return 
+        return
 
     print("\nYour game list:")
-    for index, (Game, Rating) in enumerate(games, start=1):
-        print(f"{index}. {Game} - Rating: {Rating}/10")
-
+    for index, game in enumerate(games, start=1):
+        print(f"{index}. {game.name} - Rating: {game.rating}/10")
+    
     if ask_edit:
         user_input = input("\nWould you like to edit a rating? (yes/no, q to cancel): ").strip().lower()
 
-    if user_input == "q":
-        print("Edit cancelled. Returning to main menu.")
-        return
-
-    if user_input == "yes":
-        choice_input = input("Enter the number of the game to edit (press q to cancel): ").strip()
-
-        if choice_input.lower() == "q":
+        if user_input == "q":
             print("Edit cancelled. Returning to main menu.")
             return
 
-        if choice_input.isdigit():
-            choice = int(choice_input)
+        if user_input == "yes":
+            choice_input = input("Enter the number of the game to edit (press q to cancel): ").strip()
 
-            if 1 <= choice <= len(games):
-                new_rating = input(f"Enter new rating for {games[choice - 1][0]} (press q to cancel): ").strip()
+            if choice_input.lower() == "q":
+                print("Edit cancelled. Returning to main menu.")
+                return
 
-                if new_rating.lower() == "q":
-                    print("Edit cancelled. Returning to main menu.")
-                    return
+            if choice_input.isdigit():
+                choice = int(choice_input)
 
-                if new_rating.isdigit() and 1 <= int(new_rating) <= 10:
-                    games[choice - 1] = (games[choice - 1][0], new_rating)
-                    save_games()
-                    print(f"Updated {games[choice - 1][0]} to rating {new_rating}/10")
-                else:
-                    print("Please enter a number between 1 and 10.")
+                if 1 <= choice <= len(games):
+                    new_rating = input(f"Enter new rating for {games[choice - 1].name} (press q to cancel): ").strip()
+
+                    if new_rating.lower() == "q":
+                        print("Edit cancelled. Returning to main menu.")
+                        return
+
+                    try:
+                        new_rating_value = float(new_rating)
+                        if 1 <= new_rating_value <= 10:
+                            games[choice - 1].rating = new_rating_value
+                            save_games()
+                            print(f"Updated {games[choice - 1].name} to rating {new_rating_value}/10")
+                        else:
+                            print("Please enter a number between 1 and 10.")
+                    except ValueError:
+                        print("Please enter a valid number.")
             else:
-                print("Invalid choice.")
-        else:
-            print("Invalid input. Please enter a number.")
+                print("Invalid input. Please enter a number.")
 
-    elif user_input == "no":
-        return
+        elif user_input == "no":
+            return
 
 
 def delete_game():
@@ -137,7 +158,7 @@ def delete_game():
             if 1 <= choice <= len(games):
                 removed = games.pop(choice - 1)
                 save_games()
-                print(f"Deleted game: {removed[0]}")
+                print(f"Deleted game: {removed.name}")
             else:
                 print("Invalid choice.")
         else:
@@ -158,18 +179,18 @@ def main_menu():   #main menu function
         choice = input("Pick an option (1-7): ")
 
         if choice == "1":
-            Game = get_non_empty_input("What is the name of the game you would like to add? (q to cancel) ")
+            name = get_non_empty_input("What is the name of the game you would like to add? (q to cancel) ")
 
-            if Game is None:
+            if name is None:
                 print("Add game cancelled. Returning to main menu.")
                 continue
-            Rating = get_valid_rating(f"What would you rate {Game} out of 10 stars? (q to cancel) ")
+            rating = get_valid_rating(f"What would you rate {name} out of 10 stars? (q to cancel) ")
 
-            if Rating is None:
+            if rating is None:
                 print("Add game cancelled. Returning to main menu")
                 continue
 
-            add_game((Game, Rating))
+            add_game(Game(name, rating))
 
         elif choice == "2":
             view_game()
@@ -190,11 +211,11 @@ def main_menu():   #main menu function
 
 def search_game():   #search for games
     search_name = input("Enter game name to search:")
-    search_found = [game for game in games if search_name.lower() in game[0].lower()]
+    search_found = [game for game in games if search_name.lower() in game.name.lower()]
     if search_found:
         print("Search results:")
         for game in search_found:
-            print(f"{game[0]} - Rating: {game[1]}/10")
+            print(f"{game.name} - Rating: {game.rating}/10")
     else:
         print(f"{search_name} not found.")
 
