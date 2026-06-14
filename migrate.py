@@ -1,3 +1,5 @@
+# one time migration script - converts old tuple format to Game object format
+# run once then never again
 import json
 
 games = [
